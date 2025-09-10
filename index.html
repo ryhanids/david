@@ -1,76 +1,72 @@
-
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Masaxmas - Temp Email</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Arial;background:#f3f4f6;padding:24px}
-  .card{background:#fff;padding:18px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.06);max-width:720px;margin:16px auto}
-  button{padding:10px 14px;border-radius:8px;border:none;background:#4f46e5;color:#fff;cursor:pointer}
-  pre{background:#0b1220;color:#e6eef8;padding:12px;border-radius:6px;overflow:auto}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Masaxmas - Temp Email</title>
+  <style>
+    body {font-family:system-ui,Segoe UI,Arial;background:#f3f4f6;padding:24px}
+    .card {background:#fff;padding:18px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.06);max-width:720px;margin:16px auto}
+    button {padding:10px 14px;border-radius:8px;border:none;background:#4f46e5;color:#fff;cursor:pointer}
+    pre {background:#0b1220;color:#e6eef8;padding:12px;border-radius:6px;overflow:auto}
+    #inbox {margin-top:16px;}
+  </style>
 </head>
 <body>
   <div class="card">
     <h2>Masaxmas — Temporary Email</h2>
-    <p>Buat email sementara dan lihat inbox (demo).</p>
+    <p>Buat email sementara dan lihat inbox.</p>
     <button id="btnGen">Generate Email</button>
+
     <div id="emailArea" style="margin-top:12px;display:none;">
       <p><strong>Email:</strong> <span id="emailText"></span></p>
-      <p><strong>Token:</strong> <span id="tokenText"></span></p>
       <button id="btnPoll">Check Inbox</button>
     </div>
 
     <h3>Inbox</h3>
-    <div id="inbox"></div>
+    <div id="inbox">Belum ada email.</div>
   </div>
 
 <script>
-const apiBase = ""; // jika frontend dan backend di same origin, kosong. Jika beda, set full URL.
+  // sementara pakai backend di localhost (Termux)
+  // nanti kalau sudah di-deploy, ganti jadi "https://backend.masaxmas.my.id"
+  const apiBase = "http://localhost:3000";
 
-document.getElementById("btnGen").addEventListener("click", async () => {
-  const btn = document.getElementById("btnGen");
-  btn.disabled = true; btn.textContent = "Generating...";
-  try {
-    const r = await fetch(apiBase + "/api/generate", { method: "POST" });
-    const j = await r.json();
-    console.log(j);
-    // Sesuaikan field tergantung respons API tmailor
-    const email = j.email || j?.data?.email || j?.address || JSON.stringify(j);
-    const token = j.token || j?.data?.token || "";
-    document.getElementById("emailText").textContent = email;
-    document.getElementById("tokenText").textContent = token;
-    document.getElementById("emailArea").style.display = "block";
-  } catch (e) {
-    alert("Gagal generate email");
-    console.error(e);
-  } finally {
-    btn.disabled = false; btn.textContent = "Generate Email";
-  }
-});
+  document.getElementById("btnGen").addEventListener("click", async () => {
+    const btn = document.getElementById("btnGen");
+    btn.disabled = true; btn.textContent = "Generating...";
+    try {
+      const r = await fetch(apiBase + "/api/generate", { method: "POST" });
+      const j = await r.json();
+      console.log(j);
+      const email = j.email || j.address || JSON.stringify(j);
+      document.getElementById("emailText").textContent = email;
+      document.getElementById("emailArea").style.display = "block";
+    } catch (e) {
+      alert("Gagal generate email");
+      console.error(e);
+    } finally {
+      btn.disabled = false; btn.textContent = "Generate Email";
+    }
+  });
 
-document.getElementById("btnPoll").addEventListener("click", async () => {
-  const email = document.getElementById("emailText").textContent;
-  const token = document.getElementById("tokenText").textContent;
-  if (!email || !token) return alert("Email/token tidak tersedia");
-  document.getElementById("btnPoll").disabled = true;
-  try {
-    const res = await fetch(apiBase + "/api/inbox", {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ email, token, m:1 })
-    });
-    const data = await res.json();
-    document.getElementById("inbox").innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-  } catch (e) {
-    alert("Gagal fetch inbox");
-    console.error(e);
-  } finally {
-    document.getElementById("btnPoll").disabled = false;
-  }
-});
+  document.getElementById("btnPoll").addEventListener("click", async () => {
+    const email = document.getElementById("emailText").textContent;
+    if (!email) return alert("Email belum dibuat");
+
+    try {
+      const res = await fetch(apiBase + "/api/inbox", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      document.getElementById("inbox").innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+    } catch (e) {
+      alert("Gagal fetch inbox");
+      console.error(e);
+    }
+  });
 </script>
 </body>
 </html>
