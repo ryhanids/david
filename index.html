@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Masaxmas - Temp Email</title>
+  <title>Masaxmas - david D ongkes</title>
   <style>
     body {font-family:system-ui,Segoe UI,Arial;background:#f3f4f6;padding:24px}
     .card {background:#fff;padding:18px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.06);max-width:720px;margin:16px auto}
@@ -20,6 +20,7 @@
 
     <div id="emailArea" style="margin-top:12px;display:none;">
       <p><strong>Email:</strong> <span id="emailText"></span></p>
+      <p><strong>Password:</strong> <span id="passText"></span></p>
       <button id="btnPoll">Check Inbox</button>
     </div>
 
@@ -28,9 +29,8 @@
   </div>
 
 <script>
-  // sementara pakai backend di localhost (Termux)
-  // nanti kalau sudah di-deploy, ganti jadi "https://backend.masaxmas.my.id"
-  const apiBase = "http://localhost:3000";
+  const apiBase = "http://localhost:3000"; 
+  // nanti kalau sudah deploy backend, ganti ke "https://backend.masaxmas.my.id"
 
   document.getElementById("btnGen").addEventListener("click", async () => {
     const btn = document.getElementById("btnGen");
@@ -39,8 +39,10 @@
       const r = await fetch(apiBase + "/api/generate", { method: "POST" });
       const j = await r.json();
       console.log(j);
-      const email = j.email || j.address || JSON.stringify(j);
-      document.getElementById("emailText").textContent = email;
+      if (j.error) return alert(j.error);
+
+      document.getElementById("emailText").textContent = j.email;
+      document.getElementById("passText").textContent = j.password;
       document.getElementById("emailArea").style.display = "block";
     } catch (e) {
       alert("Gagal generate email");
@@ -52,13 +54,14 @@
 
   document.getElementById("btnPoll").addEventListener("click", async () => {
     const email = document.getElementById("emailText").textContent;
-    if (!email) return alert("Email belum dibuat");
+    const password = document.getElementById("passText").textContent;
+    if (!email || !password) return alert("Email/password belum tersedia");
 
     try {
       const res = await fetch(apiBase + "/api/inbox", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, password })
       });
       const data = await res.json();
       document.getElementById("inbox").innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
