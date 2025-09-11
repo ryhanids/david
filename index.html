@@ -21,6 +21,7 @@
 
     <div id="emailArea" style="margin-top:12px;display:none;">
       <p><strong>Email:</strong> <span id="emailText"></span></p>
+      <p><strong>Password:</strong> <span id="passText"></span></p>
       <button id="btnPoll">Cek Inbox</button>
     </div>
 
@@ -29,35 +30,82 @@
   </div>
 
 <script>
-  // Pakai backend kamu di rumahweb
   const backend = "https://5278183.my.id/proxy.php";
 
+  // Fungsi buat akun baru
+  async function createAccount() {
+    try {
+      // Ambil domain random dari mail.tm
+      const domainsRes = await fetch(backend + "?endpoint=/domains");
+      const domainsData = await domainsRes.json();
+
+      if (!domainsData["hydra:member"] || domainsData["hydra:member"].length === 0) {
+        throw new Error("Tidak ada domain tersedia");
+      }
+
+      const domain = domainsData["hydra:member"][0].domain;
+      const username = Math.random().toString(36).substring(2, 10) + "@" + domain;
+      const password = Math.random().toString(36).substring(2, 12);
+
+      // Buat akun di mail.tm
+      const res = await fetch(backend + "?endpoint=/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: username,
+          password: password
+        })
+      });
+
+      const data = await res.json();
+      console.log("Akun:", data);
+
+      document.getElementById("emailText").textContent = username;
+      document.getElementById("passText").textContent = password;
+      document.getElementById("emailArea").style.display = "block";
+
+      return { username, password };
+    } catch (err) {
+      console.error("Gagal buat akun:", err);
+      alert("Gagal generate email");
+      return null;
+    }
+  }
+
+  // Tombol generate
   document.getElementById("btnGen").addEventListener("click", async () => {
     const btn = document.getElementById("btnGen");
     btn.disabled = true; btn.textContent = "Generating...";
-    try {
-      const r = await fetch(backend + "?endpoint=/generate", { method: "GET" });
-      const j = await r.json();
-      if (j.error) return alert(j.error);
-
-      document.getElementById("emailText").textContent = j.email;
-      document.getElementById("emailArea").style.display = "block";
-    } catch (e) {
-      alert("Gagal generate email");
-      console.error(e);
-    } finally {
-      btn.disabled = false; btn.textContent = "Generate Email";
-    }
+    await createAccount();
+    btn.disabled = false; btn.textContent = "Generate Email";
   });
 
+  // Tombol cek inbox
   document.getElementById("btnPoll").addEventListener("click", async () => {
     const email = document.getElementById("emailText").textContent;
-    if (!email) return alert("Belum ada email");
+    const password = document.getElementById("passText").textContent;
+    if (!email || !password) return alert("Email/password belum tersedia");
 
     try {
-      const res = await fetch(backend + "?endpoint=/inbox&email=" + encodeURIComponent(email));
-      const data = await res.json();
-      document.getElementById("inbox").innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      // Login dulu untuk dapat token
+      const loginRes = await fetch(backend + "?endpoint=/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: email, password: password })
+      });
+      const loginData = await loginRes.json();
+
+      if (!loginData.token) {
+        throw new Error("Gagal login");
+      }
+
+      // Ambil inbox pakai token
+      const inboxRes = await fetch(backend + "?endpoint=/messages", {
+        headers: { "Authorization": "Bearer " + loginData.token }
+      });
+      const inboxData = await inboxRes.json();
+
+      document.getElementById("inbox").innerHTML = `<pre>${JSON.stringify(inboxData, null, 2)}</pre>`;
     } catch (e) {
       alert("Gagal fetch inbox");
       console.error(e);
