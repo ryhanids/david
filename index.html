@@ -1,13 +1,14 @@
 <!doctype html>
-<html>
+<html lang="id">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Masaxmas - david D ongkes</title>
+  <title>Masaxmas — david D ongkes</title>
   <style>
     body {font-family:system-ui,Segoe UI,Arial;background:#f3f4f6;padding:24px}
     .card {background:#fff;padding:18px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.06);max-width:720px;margin:16px auto}
     button {padding:10px 14px;border-radius:8px;border:none;background:#4f46e5;color:#fff;cursor:pointer}
+    button:disabled {opacity:0.6;cursor:not-allowed}
     pre {background:#0b1220;color:#e6eef8;padding:12px;border-radius:6px;overflow:auto}
     #inbox {margin-top:16px;}
   </style>
@@ -20,8 +21,7 @@
 
     <div id="emailArea" style="margin-top:12px;display:none;">
       <p><strong>Email:</strong> <span id="emailText"></span></p>
-      <p><strong>Password:</strong> <span id="passText"></span></p>
-      <button id="btnPoll">Check Inbox</button>
+      <button id="btnPoll">Cek Inbox</button>
     </div>
 
     <h3>Inbox</h3>
@@ -29,20 +29,18 @@
   </div>
 
 <script>
-  // Ganti URL di bawah ini dengan URL backend yang bisa diakses publik
-  const apiBase = "https://backend.masaxmas.my.id";
+  // Pakai backend kamu di rumahweb
+  const backend = "https://5278183.my.id/proxy.php";
 
   document.getElementById("btnGen").addEventListener("click", async () => {
     const btn = document.getElementById("btnGen");
     btn.disabled = true; btn.textContent = "Generating...";
     try {
-      const r = await fetch(apiBase + "/api/generate", { method: "POST" });
+      const r = await fetch(backend + "?endpoint=/generate", { method: "GET" });
       const j = await r.json();
-      console.log(j);
       if (j.error) return alert(j.error);
 
       document.getElementById("emailText").textContent = j.email;
-      document.getElementById("passText").textContent = j.password;
       document.getElementById("emailArea").style.display = "block";
     } catch (e) {
       alert("Gagal generate email");
@@ -54,15 +52,10 @@
 
   document.getElementById("btnPoll").addEventListener("click", async () => {
     const email = document.getElementById("emailText").textContent;
-    const password = document.getElementById("passText").textContent;
-    if (!email || !password) return alert("Email/password belum tersedia");
+    if (!email) return alert("Belum ada email");
 
     try {
-      const res = await fetch(apiBase + "/api/inbox", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ email, password })
-      });
+      const res = await fetch(backend + "?endpoint=/inbox&email=" + encodeURIComponent(email));
       const data = await res.json();
       document.getElementById("inbox").innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
     } catch (e) {
